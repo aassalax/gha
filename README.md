@@ -3,7 +3,7 @@
 Résumé du scénario demandé
 🔁 Sur chaque push
 
-    ✅ Build + Test
+    ✅ Build + Test (sauf main car job fait par un autre workflow)
 
 🔀 Sur chaque PR mergée vers main
 
