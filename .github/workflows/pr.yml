@@ -28,29 +28,59 @@ jobs:
   check_release_label:
     runs-on: ubuntu-latest
     needs: build_and_deploy
-    if: contains(github.event.head_commit.message, '[release]')
-    # OU utiliser GitHub API pour lire les labels de la PR liée (voir variante plus bas)
-    
+
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install GitHub CLI
+        uses: cli/cli-action@v2
+
+      - name: Find PR from commit and check for 'release' label
+        id: check_label
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL=$(gh pr list --search "${{ github.sha }}" --state merged --json url -q '.[0].url')
+          echo "PR URL: $PR_URL"
+          
+          if [ -z "$PR_URL" ]; then
+            echo "❌ No matching PR found for this commit."
+            echo "release_label=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          LABELS=$(gh pr view "$PR_URL" --json labels -q '.labels[].name')
+          echo "Labels: $LABELS"
+          
+          if echo "$LABELS" | grep -q 'release'; then
+            echo "✅ Release label found."
+            echo "release_label=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ No release label."
+            echo "release_label=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Extract version from Gradle
+        if: steps.check_label.outputs.release_label == 'true'
         id: version
         run: |
           VERSION=$(./gradlew -q properties | grep "^version:" | awk '{print $2}')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Configure Git
+        if: steps.check_label.outputs.release_label == 'true'
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
       - name: Create tag and push
+        if: steps.check_label.outputs.release_label == 'true'
         run: |
           git tag v$VERSION
           git push origin v$VERSION
 
       - name: Create GitHub Release
+        if: steps.check_label.outputs.release_label == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ env.VERSION }}
