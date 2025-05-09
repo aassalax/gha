@@ -1,0 +1,22 @@
+name: Deploy to PROD on release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy_prod:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: temurin
+
+      - name: Deploy to PROD
+        run: echo "🚀 Deploying to PRODUCTION environment..."
+        # TODO: Replace with actual production deployment steps
