@@ -1,4 +1,4 @@
-name: PR Merge Workflow
+name: PR Merge + Release
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
 
       - name: Deploy to DEV/TEST
         run: echo "🚀 Deploying to DEV/TEST environment..."
-        # TODO: Replace with actual deployment logic
+        # TODO: Replace with your actual deployment steps
 
   check_release_label:
     runs-on: ubuntu-latest
@@ -32,26 +32,25 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install GitHub CLI
-        uses: cli/cli-action@v2
-
       - name: Find PR from commit and check for 'release' label
         id: check_label
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          export GH_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+
           PR_URL=$(gh pr list --search "${{ github.sha }}" --state merged --json url -q '.[0].url')
           echo "PR URL: $PR_URL"
-          
+
           if [ -z "$PR_URL" ]; then
             echo "❌ No matching PR found for this commit."
             echo "release_label=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           LABELS=$(gh pr view "$PR_URL" --json labels -q '.labels[].name')
           echo "Labels: $LABELS"
-          
+
           if echo "$LABELS" | grep -q 'release'; then
             echo "✅ Release label found."
             echo "release_label=true" >> $GITHUB_OUTPUT
